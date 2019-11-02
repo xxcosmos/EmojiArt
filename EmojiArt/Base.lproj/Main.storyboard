@@ -111,7 +111,7 @@
                                     <inset key="sectionInset" minX="0.0" minY="0.0" maxX="0.0" maxY="0.0"/>
                                 </collectionViewFlowLayout>
                                 <cells>
-                                    <collectionViewCell opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" id="DQi-uI-fGD">
+                                    <collectionViewCell opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" reuseIdentifier="emojiCell" id="DQi-uI-fGD" customClass="EmojiCollectionViewCell" customModule="EmojiArt" customModuleProvider="target">
                                         <rect key="frame" x="0.0" y="0.0" width="80" height="80"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                         <view key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" insetsLayoutMarginsFromSafeArea="NO">
@@ -130,6 +130,9 @@
                                             <constraint firstItem="xA1-sG-dO6" firstAttribute="centerX" secondItem="DQi-uI-fGD" secondAttribute="centerX" id="jLE-G4-6Kn"/>
                                             <constraint firstItem="xA1-sG-dO6" firstAttribute="centerY" secondItem="DQi-uI-fGD" secondAttribute="centerY" id="lEE-tZ-8JR"/>
                                         </constraints>
+                                        <connections>
+                                            <outlet property="label" destination="xA1-sG-dO6" id="sWE-PA-VLD"/>
+                                        </connections>
                                     </collectionViewCell>
                                 </cells>
                             </collectionView>

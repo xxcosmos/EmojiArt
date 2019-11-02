@@ -8,7 +8,12 @@
 
 import UIKit
 
-class EmojiArtViewController: UIViewController, UIDropInteractionDelegate,UIScrollViewDelegate, UICollectionViewDelegate,UICollectionViewDataSource,UICollectionViewDelegateFlowLayout{
+class EmojiArtViewController: UIViewController, UIDropInteractionDelegate,UIScrollViewDelegate, UICollectionViewDelegate,UICollectionViewDataSource,UICollectionViewDelegateFlowLayout, UICollectionViewDragDelegate, UICollectionViewDropDelegate {
+    func collectionView(_ collectionView: UICollectionView, performDropWith coordinator: UICollectionViewDropCoordinator) {
+        <#code#>
+    }
+    
+    
     
     @IBOutlet weak var dropZone: UIView! {
         didSet {
@@ -94,8 +99,11 @@ class EmojiArtViewController: UIViewController, UIDropInteractionDelegate,UIScro
     
     @IBOutlet weak var emojiCollectionView: UICollectionView! {
         didSet {
+            // MARK important
             emojiCollectionView.dataSource = self
             emojiCollectionView.delegate = self
+            emojiCollectionView.dragDelegate = self
+            emojiCollectionView.dropDelegate = self
         }
     }
     
@@ -103,11 +111,39 @@ class EmojiArtViewController: UIViewController, UIDropInteractionDelegate,UIScro
         return emojis.count
     }
     
+    private var font: UIFont {
+        return UIFontMetrics(forTextStyle: .body).scaledFont(for: UIFont.preferredFont(forTextStyle: .body).withSize(64.0))
+    }
+    
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "emojiCell", for: indexPath)
+        if let emojiCell = cell as? EmojiCollectionViewCell {
+            let text = NSAttributedString(string: emojis[indexPath.item], attributes: [.font: font])
+            emojiCell.label.attributedText = text
+        }
         return cell
     }
     
+    // drag 一个
+    func collectionView(_ collectionView: UICollectionView, itemsForBeginning session: UIDragSession, at indexPath: IndexPath) -> [UIDragItem] {
+        return dragItems(at: indexPath)
+    }
+    
+    // 添加多个
+    func collectionView(_ collectionView: UICollectionView, itemsForAddingTo session: UIDragSession, at indexPath: IndexPath, point: CGPoint) -> [UIDragItem] {
+        return dragItems(at: indexPath)
+    }
+    
+    
+    private func dragItems(at indexPath: IndexPath) -> [UIDragItem] {
+        if let attributedString = (emojiCollectionView.cellForItem(at: indexPath) as? EmojiCollectionViewCell)?.label.attributedText{
+            let dragItem = UIDragItem(itemProvider: NSItemProvider(object: attributedString))
+            dragItem.localObject = attributedString
+            return [dragItem]
+        } else {
+            return []
+        }
+    }
     
     
     
