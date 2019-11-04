@@ -9,10 +9,7 @@
 import UIKit
 
 class EmojiArtViewController: UIViewController, UIDropInteractionDelegate,UIScrollViewDelegate, UICollectionViewDelegate,UICollectionViewDataSource,UICollectionViewDelegateFlowLayout, UICollectionViewDragDelegate, UICollectionViewDropDelegate {
-    func collectionView(_ collectionView: UICollectionView, performDropWith coordinator: UICollectionViewDropCoordinator) {
-        <#code#>
-    }
-    
+  
     
     
     @IBOutlet weak var dropZone: UIView! {
@@ -65,16 +62,19 @@ class EmojiArtViewController: UIViewController, UIDropInteractionDelegate,UIScro
         }
     }
     
+    // 设置可以处理的类型
     func dropInteraction(_ interaction: UIDropInteraction, canHandle session: UIDropSession) -> Bool {
         return session.canLoadObjects(ofClass: NSURL.self) && session.canLoadObjects(ofClass: UIImage.self)
     }
     
+    // 设置操作类型 复制或者移动
     func dropInteraction(_ interaction: UIDropInteraction, sessionDidUpdate session: UIDropSession) -> UIDropProposal {
         return UIDropProposal(operation: .copy)
     }
     
     var imageFetcher: ImageFetcher?
     
+    // 实际操作
     func dropInteraction(_ interaction: UIDropInteraction, performDrop session: UIDropSession) {
         imageFetcher = ImageFetcher() { (url, image) in
             DispatchQueue.main.async {
@@ -126,6 +126,7 @@ class EmojiArtViewController: UIViewController, UIDropInteractionDelegate,UIScro
     
     // drag 一个
     func collectionView(_ collectionView: UICollectionView, itemsForBeginning session: UIDragSession, at indexPath: IndexPath) -> [UIDragItem] {
+        session.localContext = collectionView
         return dragItems(at: indexPath)
     }
     
@@ -138,6 +139,7 @@ class EmojiArtViewController: UIViewController, UIDropInteractionDelegate,UIScro
     private func dragItems(at indexPath: IndexPath) -> [UIDragItem] {
         if let attributedString = (emojiCollectionView.cellForItem(at: indexPath) as? EmojiCollectionViewCell)?.label.attributedText{
             let dragItem = UIDragItem(itemProvider: NSItemProvider(object: attributedString))
+            // 设置 localObject
             dragItem.localObject = attributedString
             return [dragItem]
         } else {
@@ -145,29 +147,52 @@ class EmojiArtViewController: UIViewController, UIDropInteractionDelegate,UIScro
         }
     }
     
-    
-    
-    
-    override func viewDidLoad() {
-        super.viewDidLoad()
-
-        // Do any additional setup after loading the view.
-    }
-
-    override func didReceiveMemoryWarning() {
-        super.didReceiveMemoryWarning()
-        // Dispose of any resources that can be recreated.
+    // 设置可以处理的类型
+    func collectionView(_ collectionView: UICollectionView, canHandle session: UIDropSession) -> Bool {
+        
+        return session.canLoadObjects(ofClass: NSAttributedString.self)
     }
     
-
-    /*
-    // MARK: - Navigation
-
-    // In a storyboard-based application, you will often want to do a little preparation before navigation
-    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        // Get the new view controller using segue.destinationViewController.
-        // Pass the selected object to the new view controller.
+    func collectionView(_ collectionView: UICollectionView, dropSessionDidUpdate session: UIDropSession, withDestinationIndexPath destinationIndexPath: IndexPath?) -> UICollectionViewDropProposal {
+        let isSelf = (session.localDragSession?.localContext) as? UICollectionView == collectionView
+        return UICollectionViewDropProposal(operation: isSelf ? .move : .copy, intent: .insertAtDestinationIndexPath)
     }
-    */
+    
+    // collectionView 实施 drop 操作
+    func collectionView(_ collectionView: UICollectionView, performDropWith coordinator: UICollectionViewDropCoordinator) {
+        let destinationIndexPath = coordinator.destinationIndexPath ?? IndexPath(item: 0, section: 0)
+        for item in coordinator.items {
+            if let sourceIndexPath = item.sourceIndexPath {
+                // drop 操作来自内部
+                if let attributedString = item.dragItem.localObject as? NSAttributedString {
+                    collectionView.performBatchUpdates({
+                        emojis.remove(at: sourceIndexPath.item)
+                        emojis.insert(attributedString.string, at: destinationIndexPath.item)
+                        collectionView.deleteItems(at: [sourceIndexPath])
+                        collectionView.insertItems(at: [destinationIndexPath])
+                    })
+                    coordinator.drop(item.dragItem, toItemAt: destinationIndexPath)
+                }
+            } else {
+                // drop 操作来自外部
+                // 新建一个占位符
+                let placeholderContext =  coordinator.drop(item.dragItem, to: UICollectionViewDropPlaceholder(insertionIndexPath: destinationIndexPath, reuseIdentifier: "DropPlaceholderCell"))
+                // 异步加载数据
+                item.dragItem.itemProvider.loadObject(ofClass: NSAttributedString.self) { ( provider,error ) in
+                    DispatchQueue.main.async {
+                        if let attributedString = provider as? NSAttributedString {
+                            placeholderContext.commitInsertion(dataSourceUpdates: { insertionIndexPath in
+                                self.emojis.insert(attributedString.string, at: insertionIndexPath.item)
+                            })
+                        } else {
+                            placeholderContext.deletePlaceholder()
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
 
 }
